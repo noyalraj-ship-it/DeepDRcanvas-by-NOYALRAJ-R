@@ -1,0 +1,1542 @@
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>DeepDR-Canvas - Cancer Drug Response Portal</title>
+  <meta name="description" content="Predictive modeling of cancer drug sensitivity from integrated genomic profiles (mutation & gene expression)"/>
+  
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"/>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Outfit:wght@400;500;600;700;800&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+  
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+  <script src="https://cdn.plot.ly/plotly-2.24.1.min.js"></script>
+  <script src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            outfit: ['Outfit', 'sans-serif'],
+            mono: ['Fira Code', 'monospace'],
+          },
+          colors: {
+            brand: {
+              50: '#f0fdfa', 100: '#ccfbf1', 200: '#99f6e4', 300: '#5eead4', 400: '#2dd4bf',
+              500: '#14b8a6', 600: '#0d9488', 700: '#0f766e', 800: '#115e59', 900: '#134e4a',
+            },
+            indigoBrand: {
+              50: '#f5f3ff', 100: '#ede9fe', 200: '#ddd6fe', 300: '#c4b5fd', 400: '#a78bfa',
+              500: '#8b5cf6', 600: '#7c3aed', 700: '#6d28d9', 800: '#5b21b6', 900: '#4c1d95',
+            },
+            accent: {
+              teal: '#0ea5e9',
+              green: '#10b981',
+              neon: '#ec4899',
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    /* Critical Tab Switching Logic */
+    .tab-content:not(.active) {
+      display: none !important;
+    }
+    
+    /* Core Layout Component Fixes */
+    .card-panel {
+      background-color: #ffffff;
+      border-radius: 0.75rem;
+      border: 1px solid #e2e8f0;
+      box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05), 0 1px 2px -1px rgba(0, 0, 0, 0.05);
+    }
+    
+    .input-field {
+      border: 1px solid #cbd5e1;
+      background-color: #ffffff;
+      outline: none;
+      transition: all 0.2s ease-in-out;
+    }
+    
+    .input-field:focus {
+      border-color: #14b8a6;
+      box-shadow: 0 0 0 3px rgba(20, 184, 166, 0.15);
+    }
+
+    /* Custom Scrollbar styling for a cleaner dashboard look */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #f1f5f9;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #94a3b8;
+    }
+  </style>
+</head>
+<body class="bg-[#f8fafc] text-[#0f172a] min-h-screen flex flex-col font-sans antialiased">
+
+  <nav class="bg-white/90 backdrop-blur-md border-b border-gray-100 shadow-sm sticky top-0 z-50">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex justify-between items-center h-16">
+        <a class="flex items-center cursor-pointer group" onclick="switchTab('home')">
+          <div class="w-10 h-10 bg-gradient-to-br from-teal-600 to-indigo-600 rounded-xl flex items-center justify-center shadow-md group-hover:scale-105 transition-transform duration-300">
+            <i class="fas fa-microscope text-white text-lg"></i>
+          </div>
+          <div class="ml-3">
+            <span class="text-2xl font-bold font-outfit tracking-tight text-gray-900 group-hover:text-teal-600 transition-colors">
+              deepDR<span class="text-indigo-600">Canvas</span>
+            </span>
+            <span class="block text-[9px] font-mono tracking-widest text-gray-400 uppercase -mt-1 font-semibold">Cancer Genomics Portal</span>
+          </div>
+        </a>
+        
+        <div class="hidden md:flex items-center space-x-6">
+          <button class="nav-link font-medium text-gray-600 hover:text-teal-600 transition-all px-1 py-4" onclick="switchTab('home')" id="nav-home">Home</button>
+          <button class="nav-link font-semibold text-teal-600 transition-all border-b-2 border-teal-500 px-1 py-4" onclick="switchTab('find-drug')" id="nav-find-drug">Find Drug</button>
+          <button class="nav-link font-medium text-gray-600 hover:text-teal-600 transition-all px-1 py-4" onclick="switchTab('find-sample')" id="nav-find-sample">Find Sample</button>
+          <button class="nav-link font-medium text-gray-600 hover:text-teal-600 transition-all px-1 py-4" onclick="switchTab('analyze-tcga')" id="nav-analyze-tcga">Analyze TCGA</button>
+          <button class="nav-link font-medium text-gray-600 hover:text-teal-600 transition-all px-1 py-4" onclick="switchTab('help')" id="nav-help">Documentation</button>
+        </div>
+        
+        <div class="flex items-center">
+          <button onclick="switchTab('find-drug')" class="hidden sm:inline-flex items-center justify-center bg-gradient-to-r from-teal-600 to-indigo-600 text-white text-xs font-semibold px-4 py-2.5 rounded-lg hover:from-teal-500 hover:to-indigo-500 transition shadow-sm">
+            <i class="fas fa-flask mr-2"></i> Start Prediction
+          </button>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <div id="tab-home" class="tab-content flex-1 z-10 relative">
+    <header class="relative py-20 overflow-hidden bg-gradient-to-br from-teal-600 to-indigo-600 text-white border-b border-gray-200">
+      <div class="absolute inset-0 opacity-10 bg-[radial-gradient(#ffffff_1px,transparent_1px)] [background-size:20px_20px] pointer-events-none"></div>
+      <div class="max-w-7xl mx-auto px-4 text-center relative z-10">
+        <span class="bg-white/10 text-white border border-white/20 text-xs px-3 py-1.5 rounded-full font-bold uppercase tracking-wider mb-6 inline-block">Deep Learning & Oncology</span>
+        <h1 class="text-4xl md:text-6xl font-bold font-outfit text-white mb-6 tracking-tight">
+          Cancer Drug Sensitivity<br><span class="text-teal-200">Deep Learning Predictor</span>
+        </h1>
+        <p class="text-base md:text-lg text-white/90 mb-10 max-w-3xl mx-auto leading-relaxed font-light">
+          Predict compound IC50 response profiles across 265 biological treatments. Utilizes next-generation sequencing (NGS) mutation arrays and gene expression signatures.
+        </p>
+        <div class="flex flex-wrap justify-center gap-4">
+          <button onclick="switchTab('find-drug')" class="bg-white text-teal-700 font-bold px-6 py-3 rounded-lg shadow-md hover:bg-teal-50 transition duration-300">Explore Find Drug</button>
+          <button onclick="switchTab('find-sample')" class="bg-transparent border border-white/20 hover:bg-white/10 text-white font-bold px-6 py-3 rounded-lg transition duration-300">Explore Find Sample</button>
+        </div>
+      </div>
+    </header>
+
+    <section class="py-12 max-w-7xl mx-auto px-4">
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div class="card-panel p-6 text-center">
+          <div class="w-10 h-10 bg-teal-50 text-teal-600 rounded-lg flex items-center justify-center mx-auto mb-3 text-lg"><i class="fas fa-capsules"></i></div>
+          <h3 class="text-3xl font-bold text-gray-900 font-outfit">265</h3>
+          <p class="text-xs text-gray-500 mt-1">Anti-Cancer Compounds</p>
+        </div>
+        <div class="card-panel p-6 text-center">
+          <div class="w-10 h-10 bg-blue-50 text-blue-600 rounded-lg flex items-center justify-center mx-auto mb-3 text-lg"><i class="fas fa-vial"></i></div>
+          <h3 class="text-3xl font-bold text-gray-900 font-outfit">704</h3>
+          <p class="text-xs text-gray-500 mt-1">Screened Cell Lines</p>
+        </div>
+        <div class="card-panel p-6 text-center">
+          <div class="w-10 h-10 bg-green-50 text-green-600 rounded-lg flex items-center justify-center mx-auto mb-3 text-lg"><i class="fas fa-lungs"></i></div>
+          <h3 class="text-3xl font-bold text-gray-900 font-outfit">9,059</h3>
+          <p class="text-xs text-gray-500 mt-1">Cancer Tumors (TCGA)</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="py-16 bg-white border-t border-gray-100">
+      <div class="max-w-7xl mx-auto px-4">
+        <h2 class="text-center text-3xl font-bold font-outfit text-gray-900 mb-12">Core Interactive Frameworks</h2>
+        
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+          <div class="card-panel overflow-hidden hover:border-teal-500/40 transition-all duration-300 group flex flex-col justify-between">
+            <div class="p-8">
+              <span class="text-teal-600 font-bold text-xs uppercase tracking-wider">Predict Responses</span>
+              <h3 class="text-xl font-bold font-outfit text-gray-900 mt-2 mb-4">Find Drug Mode</h3>
+              <p class="text-gray-500 text-sm leading-relaxed mb-6">
+                Submit gene mutation lists and mRNA expression values to compute drug-sensitive targets. Interactively visualize distributions across 7 detailed results panels.
+              </p>
+            </div>
+            <div class="px-8 pb-8 border-t border-gray-100 pt-4">
+              <button onclick="switchTab('find-drug')" class="text-teal-600 hover:text-teal-700 font-bold text-xs flex items-center group-hover:translate-x-1 transition-transform">
+                Open Predictor <i class="fas fa-arrow-right ml-2 text-[10px]"></i>
+              </button>
+            </div>
+          </div>
+          <div class="card-panel overflow-hidden hover:border-blue-500/40 transition-all duration-300 group flex flex-col justify-between">
+            <div class="p-8">
+              <span class="text-blue-600 font-bold text-xs uppercase tracking-wider">Cohort Matching</span>
+              <h3 class="text-xl font-bold font-outfit text-gray-900 mt-2 mb-4">Find Sample Mode</h3>
+              <p class="text-gray-500 text-sm leading-relaxed mb-6">
+                Calculate real-time Jaccard indices and Pearson correlations between your sample and database targets. Map matches across similar cancer types.
+              </p>
+            </div>
+            <div class="px-8 pb-8 border-t border-gray-100 pt-4">
+              <button onclick="switchTab('find-sample')" class="text-blue-600 hover:text-blue-700 font-bold text-xs flex items-center group-hover:translate-x-1 transition-transform">
+                Find Cohorts <i class="fas fa-arrow-right ml-2 text-[10px]"></i>
+              </button>
+            </div>
+          </div>
+          <div class="card-panel overflow-hidden hover:border-purple-500/40 transition-all duration-300 group flex flex-col justify-between">
+            <div class="p-8">
+              <span class="text-purple-600 font-bold text-xs uppercase tracking-wider">Database Explorer</span>
+              <h3 class="text-xl font-bold font-outfit text-gray-900 mt-2 mb-4">Analyze TCGA</h3>
+              <p class="text-gray-500 text-sm leading-relaxed mb-6">
+                Explore pre-calculated drug sensitivity models correlated directly with cancer types and specific genomic alterations across cell-line populations.
+              </p>
+            </div>
+            <div class="px-8 pb-8 border-t border-gray-100 pt-4">
+              <button onclick="switchTab('analyze-tcga')" class="text-purple-600 hover:text-purple-700 font-bold text-xs flex items-center group-hover:translate-x-1 transition-transform">
+                Explore Cohort <i class="fas fa-arrow-right ml-2 text-[10px]"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <div id="tab-find-drug" class="tab-content active flex-1 z-10 relative py-8">
+    <div class="max-w-7xl mx-auto px-4">
+      
+      <div class="mb-8 border-b border-gray-200 pb-4">
+        <h2 class="text-3xl font-bold font-outfit text-gray-950">Find Drug Predictor Workspace</h2>
+        <p class="text-xs text-gray-500 mt-1">Input patient mutations and expression levels to predict responses across 265 biological treatments.</p>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-4 gap-8">
+        
+        <div class="lg:col-span-1 space-y-6">
+          <div class="card-panel p-6 space-y-6">
+            <h3 class="text-sm font-bold font-outfit text-gray-900 uppercase tracking-wider border-b border-gray-100 pb-2">Genomic Input Panel</h3>
+            
+            <div class="space-y-2">
+              <label class="block text-xs font-bold text-gray-600">Mutation Data (MAF / CSV)</label>
+              <div class="flex items-center justify-center w-full">
+                <label class="flex flex-col items-center justify-center w-full h-24 border border-dashed border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50 transition">
+                  <div class="flex flex-col items-center justify-center pt-3 pb-3">
+                    <i class="fas fa-cloud-upload-alt text-xl text-gray-400 mb-1"></i>
+                    <p class="text-[10px] text-gray-500">Browse MAF file</p>
+                  </div>
+                  <input type="file" id="fd-mut-file" class="hidden" accept=".csv,.txt,.maf" onchange="handleMutationFileUpload(event)">
+                </label>
+              </div>
+              <div class="flex justify-between items-center text-[10px]">
+                <span id="fd-mut-status" class="text-gray-500 truncate max-w-[120px]">No file uploaded</span>
+                <button onclick="downloadSampleMutations()" class="text-teal-600 font-bold hover:underline"><i class="fas fa-download mr-1"></i>Sample CSV</button>
+              </div>
+            </div>
+
+            <div class="space-y-2">
+              <label class="block text-xs font-bold text-gray-600">Or Input Mutated Genes</label>
+              <textarea id="fd-gene-list" class="w-full h-32 input-field rounded-lg p-2.5 font-mono text-xs text-gray-800" placeholder="Enter genes on new lines, e.g.&#10;EGFR&#10;BRAF&#10;TP53"></textarea>
+            </div>
+
+            <div class="space-y-2">
+              <label class="block text-xs font-bold text-gray-600">Expression Data (txt / CSV)</label>
+              <div class="flex items-center justify-center w-full">
+                <label class="flex flex-col items-center justify-center w-full h-24 border border-dashed border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50 transition">
+                  <div class="flex flex-col items-center justify-center pt-3 pb-3">
+                    <i class="fas fa-cloud-upload-alt text-xl text-gray-400 mb-1"></i>
+                    <p class="text-[10px] text-gray-500">Browse Expression file</p>
+                  </div>
+                  <input type="file" id="fd-exp-file" class="hidden" accept=".csv,.txt" onchange="handleExpressionFileUpload(event)">
+                </label>
+              </div>
+              <div class="flex justify-between items-center text-[10px]">
+                <span id="fd-exp-status" class="text-gray-500 truncate max-w-[120px]">No file uploaded</span>
+                <button onclick="downloadSampleExpression()" class="text-teal-600 font-bold hover:underline"><i class="fas fa-download mr-1"></i>Sample CSV</button>
+              </div>
+            </div>
+
+            <div class="space-y-3 pt-4 border-t border-gray-100">
+              <h4 class="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Modeling Parameters</h4>
+              
+              <div>
+                <label class="block text-[10px] text-gray-500 mb-1">Expression Unit</label>
+                <div class="grid grid-cols-2 gap-2">
+                  <button id="btn-exp-unit-tpm" onclick="toggleExpUnit('TPM')" class="bg-teal-600 border border-teal-500 text-white text-[10px] py-1.5 rounded font-bold">TPM</button>
+                  <button id="btn-exp-unit-fpkm" onclick="toggleExpUnit('FPKM')" class="bg-gray-100 border border-gray-200 text-gray-600 text-[10px] py-1.5 rounded hover:text-gray-900 font-semibold">FPKM</button>
+                </div>
+              </div>
+
+              <div>
+                <label class="block text-[10px] text-gray-500 mb-1">Log Transform (log2(x+1))</label>
+                <div class="grid grid-cols-2 gap-2">
+                  <button id="btn-log-yes" onclick="toggleLogTransform(true)" class="bg-teal-600 border border-teal-500 text-white text-[10px] py-1.5 rounded font-bold">Yes</button>
+                  <button id="btn-log-no" onclick="toggleLogTransform(false)" class="bg-gray-100 border border-gray-200 text-gray-600 text-[10px] py-1.5 rounded hover:text-gray-900 font-semibold">No</button>
+                </div>
+              </div>
+
+              <div>
+                <label class="block text-[10px] text-gray-500 mb-1">Select Cohort Baseline</label>
+                <div class="grid grid-cols-2 gap-2">
+                  <button id="btn-type-cell" onclick="toggleCohortBaseline('Cell')" class="bg-teal-600 border border-teal-500 text-white text-[10px] py-1.5 rounded font-bold">Cell Line (CCLE)</button>
+                  <button id="btn-type-tumor" onclick="toggleCohortBaseline('Tumor')" class="bg-gray-100 border border-gray-200 text-gray-600 text-[10px] py-1.5 rounded hover:text-gray-900 font-semibold">Tumor (TCGA)</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-4 pt-4 border-t border-gray-100">
+              <button onclick="runExamplePrediction()" class="bg-gray-100 hover:bg-gray-200 text-gray-700 border border-gray-200 text-xs py-2.5 rounded-lg font-bold flex items-center justify-center">
+                <i class="fas fa-rocket mr-2"></i> Load Example
+              </button>
+              <button onclick="submitPrediction()" class="bg-gradient-to-r from-teal-600 to-indigo-600 text-white text-xs py-2.5 rounded-lg font-bold flex items-center justify-center hover:from-teal-500 hover:to-indigo-500 transition shadow-sm">
+                <i class="fas fa-play mr-2"></i> Run Predictor
+              </button>
+            </div>
+            
+            <button onclick="resetFindDrugWorkspace()" class="w-full text-center text-[10px] text-gray-400 hover:text-gray-900 hover:underline mt-2">
+              <i class="fas fa-redo mr-1"></i> Reset Workspace Files
+            </button>
+          </div>
+        </div>
+
+        <div class="lg:col-span-3 space-y-8">
+          
+          <div id="fd-loading" class="hidden card-panel p-16 text-center space-y-4">
+            <div class="relative w-16 h-16 mx-auto">
+              <div class="absolute inset-0 border-4 border-teal-100 rounded-full"></div>
+              <div class="absolute inset-0 border-4 border-t-teal-600 rounded-full animate-spin"></div>
+            </div>
+            <h4 class="text-lg font-bold text-gray-800">Running deepDR-Canvas Engine...</h4>
+            <p class="text-xs text-gray-500 max-w-sm mx-auto">Parsing mutation sequences, loading deep network parameters, and calculating drug IC50 vectors...</p>
+          </div>
+
+          <div id="fd-empty-state" class="hidden card-panel p-24 text-center">
+            <div class="w-20 h-20 bg-teal-50 text-teal-600 rounded-full flex items-center justify-center mx-auto mb-6 text-3xl shadow-sm">
+              <i class="fas fa-chart-line"></i>
+            </div>
+            <h3 class="text-xl font-bold text-gray-900 font-outfit">Awaiting Prediction Inputs</h3>
+            <p class="text-gray-500 text-sm max-w-md mx-auto mt-2 mb-6 leading-relaxed">
+              To begin, upload genomic mutation and mRNA expression files, or simply click "Load Example" to test the system.
+            </p>
+          </div>
+
+          <div id="fd-results-panel" class="space-y-8">
+            
+            <div class="card-panel p-6 shadow-sm">
+              <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center border-b border-gray-100 pb-4 mb-4 gap-3">
+                <div>
+                  <h3 class="text-lg font-bold text-gray-900 flex items-center">
+                    <span class="w-6 h-6 bg-teal-600 text-white text-[11px] font-bold rounded flex items-center justify-center mr-3 font-mono">1.1</span>
+                    Predicted Drug Response (IC50 Score Matrix)
+                  </h3>
+                  <p class="text-[10px] text-gray-500 mt-0.5">Predicted IC50 values (log(uM)). A more negative value indicates high sensitivity to treatment.</p>
+                </div>
+                <div class="relative">
+                  <input type="text" id="fd-table-search" oninput="searchResultsTable()" class="input-field text-xs rounded-lg px-3 py-1.5 w-48 font-medium pl-8" placeholder="Search drug name...">
+                  <i class="fas fa-search absolute left-3 top-2.5 text-[10px] text-gray-400"></i>
+                </div>
+              </div>
+              
+              <div class="max-h-[350px] overflow-y-auto border border-gray-100 rounded-lg">
+                <table class="w-full text-left text-sm border-collapse">
+                  <thead class="bg-gray-50 border-b border-gray-200 text-gray-600 sticky top-0 z-10">
+                    <tr>
+                      <th class="p-3 uppercase font-bold tracking-wider text-[11px] bg-gray-50">Drug Name</th>
+                      <th class="p-3 uppercase font-bold tracking-wider text-[11px] bg-gray-50">Target Node</th>
+                      <th class="p-3 uppercase font-bold tracking-wider text-[11px] bg-gray-50">Pathway</th>
+                      <th class="p-3 uppercase font-bold tracking-wider text-[11px] text-right bg-gray-50">Predicted IC50</th>
+                      <th class="p-3 uppercase font-bold tracking-wider text-[11px] text-center bg-gray-50">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody id="fd-table-tbody" class="divide-y divide-gray-100 font-medium text-gray-700">
+                    </tbody>
+                </table>
+              </div>
+            </div>
+
+            <div class="card-panel p-6 shadow-sm">
+              <div class="border-b border-gray-100 pb-4 mb-4">
+                <h3 class="text-lg font-bold text-gray-900 flex items-center">
+                  <span class="w-6 h-6 bg-teal-600 text-white text-[11px] font-bold rounded flex items-center justify-center mr-3 font-mono">1.2</span>
+                  Model Waterfall Distribution (265 Drug Profile)
+                </h3>
+                <p class="text-[10px] text-gray-500 mt-0.5">Distribution profile of 265 predicted IC50 scores. Leftmost drugs represent top sensitive candidates.</p>
+              </div>
+              <div id="fd-waterfall-plot" class="w-full h-[320px]"></div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+              
+              <div class="card-panel p-6 shadow-sm">
+                <div class="border-b border-gray-100 pb-4 mb-4">
+                  <h3 class="text-lg font-bold text-gray-900 flex items-center">
+                    <span class="w-6 h-6 bg-teal-600 text-white text-[11px] font-bold rounded flex items-center justify-center mr-3 font-mono">1.3</span>
+                    Pharmacodynamic Target Profile
+                  </h3>
+                  <p class="text-[10px] text-gray-500 mt-0.5">2D chemical structure representation and drug details of selected compound.</p>
+                </div>
+                
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-6 items-center">
+                  <div class="border border-gray-200 rounded-xl p-4 bg-gray-50 flex items-center justify-center min-h-[180px]">
+                    <div id="fd-drug-structure" class="w-full max-w-[150px] aspect-square flex items-center justify-center text-gray-500 font-mono text-xs">
+                      Select a drug above
+                    </div>
+                  </div>
+                  <div class="space-y-3 text-sm">
+                    <div>
+                      <span class="text-gray-400 font-bold block text-xs">Chemical Name:</span>
+                      <span id="fd-drug-name-label" class="text-gray-900 font-bold text-base">-</span>
+                    </div>
+                    <div>
+                      <span class="text-gray-400 font-bold block text-xs">Molecular Target(s):</span>
+                      <span id="fd-drug-target-label" class="text-teal-600 font-bold">-</span>
+                    </div>
+                    <div>
+                      <span class="text-gray-400 font-bold block text-xs">SMILES String:</span>
+                      <span id="fd-drug-smiles-label" class="text-gray-600 font-mono text-[10px] break-all block max-h-[80px] overflow-y-auto">-</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="card-panel p-6 shadow-sm">
+                <div class="border-b border-gray-100 pb-4 mb-4">
+                  <h3 class="text-lg font-bold text-gray-900 flex items-center">
+                    <span class="w-6 h-6 bg-teal-600 text-white text-[11px] font-bold rounded flex items-center justify-center mr-3 font-mono">1.4</span>
+                    Population Density Curve Matching
+                  </h3>
+                  <p class="text-[10px] text-gray-500 mt-0.5">Query sample response comparison against the background population index.</p>
+                </div>
+                <div id="fd-density-plot" class="w-full h-[180px]"></div>
+              </div>
+            </div>
+
+            <div class="card-panel p-6 shadow-sm">
+              <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center border-b border-gray-100 pb-4 mb-6 gap-4">
+                <div>
+                  <h3 class="text-lg font-bold text-gray-900 flex items-center">
+                    <span class="w-6 h-6 bg-teal-600 text-white text-[11px] font-bold rounded flex items-center justify-center mr-3 font-mono">1.5 / 1.6</span>
+                    Pan-Cancer Profiling (Types vs Subtypes)
+                  </h3>
+                  <p class="text-[10px] text-gray-500 mt-0.5">Distribution of predicted responses across global TCGA tumor lines.</p>
+                </div>
+                
+                <div class="flex items-center gap-2">
+                  <label class="text-[10px] font-bold text-gray-500 uppercase">Focus Tumor Type:</label>
+                  <select id="fd-box-cancer-select" onchange="renderSubtypeBoxPlot()" class="input-field text-xs rounded-lg p-1.5 focus:outline-none">
+                    </select>
+                </div>
+              </div>
+
+              <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <div>
+                  <h4 class="text-xs font-bold text-gray-500 mb-3 uppercase tracking-wider text-center">Predicted IC50 across Cancer Types</h4>
+                  <div id="fd-box-plot-types" class="w-full h-[300px]"></div>
+                </div>
+                <div>
+                  <h4 class="text-xs font-bold text-gray-500 mb-3 uppercase tracking-wider text-center">Subtype Specific Distribution</h4>
+                  <div id="fd-box-plot-subtypes" class="w-full h-[300px]"></div>
+                </div>
+              </div>
+            </div>
+
+            <div class="card-panel p-6 shadow-sm">
+              <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center border-b border-gray-100 pb-4 mb-4 gap-4">
+                <div>
+                  <h3 class="text-lg font-bold text-gray-900 flex items-center">
+                    <span class="w-6 h-6 bg-teal-600 text-white text-[11px] font-bold rounded flex items-center justify-center mr-3 font-mono">1.7</span>
+                    Response Interaction Network Mapping
+                  </h3>
+                  <p class="text-[10px] text-gray-500 mt-0.5">Interactive topology map linking selected drug nodes to top-responding cancer cell line samples.</p>
+                </div>
+                
+                <button onclick="downloadNetworkData()" class="bg-gray-100 border border-gray-200 hover:bg-gray-200 text-gray-700 px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center">
+                  <i class="fas fa-download mr-2 text-teal-600"></i> Export Network Coordinates
+                </button>
+              </div>
+              
+              <div id="fd-network-container" class="border border-gray-200 bg-gray-50 rounded-xl w-full h-[360px] relative">
+                </div>
+              <div class="flex items-center justify-center gap-6 mt-4 text-[10px] text-gray-500 font-semibold uppercase">
+                <span class="flex items-center"><span class="w-2.5 h-2.5 bg-indigo-500 rounded-full mr-1.5"></span> Selected Drug</span>
+                <span class="flex items-center"><span class="w-2.5 h-2.5 bg-amber-500 rounded-full mr-1.5"></span> Target Protein</span>
+                <span class="flex items-center"><span class="w-2.5 h-2.5 bg-emerald-500 rounded-full mr-1.5"></span> Sensitive Cell Line</span>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <div id="tab-find-sample" class="tab-content flex-1 z-10 relative py-8">
+    <div class="max-w-7xl mx-auto px-4">
+      
+      <div class="mb-8 border-b border-gray-200 pb-4">
+        <h2 class="text-3xl font-bold font-outfit text-gray-900">Find Similar Samples Workspace</h2>
+        <p class="text-xs text-gray-500 mt-1">Discover cell lines or patient tumors sharing comparable genomic signatures to identify successful historical treatments.</p>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-4 gap-8">
+        
+        <div class="lg:col-span-1 space-y-6">
+          <div class="card-panel p-6 space-y-6">
+            <h3 class="text-sm font-bold font-outfit text-gray-900 uppercase tracking-wider border-b border-gray-100 pb-2">Query Profile</h3>
+            
+            <div class="space-y-2">
+              <label class="block text-xs font-bold text-gray-600">Gene Mutation Inputs</label>
+              <textarea id="fs-gene-list" class="w-full h-40 input-field rounded-lg p-2.5 font-mono text-xs text-gray-800" placeholder="Enter mutated genes, e.g.&#10;TP53&#10;KRAS&#10;EGFR"></textarea>
+            </div>
+
+            <div class="space-y-3">
+              <h4 class="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Similarity Mode</h4>
+              <div class="grid grid-cols-2 gap-2">
+                <button id="fs-btn-ccle" onclick="toggleFsCohort('CCLE')" class="bg-teal-600 border border-teal-500 text-white text-[10px] py-1.5 rounded font-bold">Cell Lines (CCLE)</button>
+                <button id="fs-btn-tcga" onclick="toggleFsCohort('TCGA')" class="bg-gray-100 border border-gray-200 text-gray-600 text-[10px] py-1.5 rounded hover:text-gray-900 font-semibold">Tumors (TCGA)</button>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-4 pt-4 border-t border-gray-100">
+              <button onclick="loadFsExample()" class="bg-gray-100 hover:bg-gray-200 text-gray-700 border border-gray-200 text-xs py-2.5 rounded-lg font-bold flex items-center justify-center">
+                <i class="fas fa-rocket mr-2"></i> Example
+              </button>
+              <button onclick="calculateSimilarities()" class="bg-gradient-to-r from-teal-600 to-indigo-600 text-white text-xs py-2.5 rounded-lg font-bold flex items-center justify-center hover:from-teal-500 hover:to-indigo-500 transition shadow-sm">
+                <i class="fas fa-calculator mr-2"></i> Compute
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="lg:col-span-3 space-y-6">
+          <div id="fs-empty-state" class="card-panel p-24 text-center">
+            <div class="w-20 h-20 bg-teal-50 text-teal-600 rounded-full flex items-center justify-center mx-auto mb-6 text-3xl shadow-sm">
+              <i class="fas fa-search"></i>
+            </div>
+            <h3 class="text-xl font-bold text-gray-900 font-outfit">Calculate Patient Cohort Match</h3>
+            <p class="text-gray-500 text-sm max-w-md mx-auto mt-2">Input mutated genes and select calculation target parameters to search the database.</p>
+          </div>
+
+          <div id="fs-results" class="hidden card-panel p-6 shadow-sm">
+            <div class="border-b border-gray-100 pb-4 mb-6">
+              <h3 class="text-lg font-bold text-gray-900">Cohort Match Results</h3>
+              <p class="text-[10px] text-gray-500 mt-0.5">Top samples sorted by Jaccard similarity coefficient (based on overlapping mutation sets).</p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+              <div class="space-y-4">
+                <h4 class="text-xs font-bold text-gray-500 uppercase tracking-wider">Top Matched Samples</h4>
+                <div class="space-y-3 max-h-[400px] overflow-y-auto pr-2" id="fs-match-list">
+                  </div>
+              </div>
+              <div>
+                <h4 class="text-xs font-bold text-gray-500 uppercase tracking-wider text-center mb-4">Mutational Profile Comparison</h4>
+                <div id="fs-comparison-plot" class="w-full h-[320px]"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <div id="tab-analyze-tcga" class="tab-content flex-1 z-10 relative py-8">
+    <div class="max-w-7xl mx-auto px-4">
+      
+      <div class="mb-8 border-b border-gray-200 pb-4">
+        <h2 class="text-3xl font-bold font-outfit text-gray-900">Analyze TCGA Predictions Database</h2>
+        <p class="text-xs text-gray-500 mt-1">Explore pre-calculated drug response predictions correlated with genomic alterations across 9,059 pan-cancer tumors.</p>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-4 gap-8">
+        
+        <div class="lg:col-span-1 space-y-6">
+          <div class="card-panel p-6 space-y-4">
+            <h3 class="text-sm font-bold text-gray-900 uppercase tracking-wider border-b border-gray-100 pb-2">Analysis Filters</h3>
+            
+            <div>
+              <label class="block text-xs font-semibold text-gray-500 mb-1">Select Cohort / Cancer Type</label>
+              <select id="tcga-cancer-select" onchange="runTcgaAnalysis()" class="w-full input-field text-xs rounded-lg p-2.5 focus:outline-none">
+                <option value="BRCA">BRCA (Breast Invasive Carcinoma)</option>
+                <option value="LUAD" selected>LUAD (Lung Adenocarcinoma)</option>
+                <option value="COAD">COAD (Colon Adenocarcinoma)</option>
+                <option value="GBM">GBM (Glioblastoma Multiforme)</option>
+                <option value="SKCM">SKCM (Skin Cutaneous Melanoma)</option>
+                <option value="OV">OV (Ovarian Serous Cystadenocarcinoma)</option>
+              </select>
+            </div>
+
+            <div>
+              <label class="block text-xs font-semibold text-gray-500 mb-1">Select Therapeutic Drug</label>
+              <select id="tcga-drug-select" onchange="runTcgaAnalysis()" class="w-full input-field text-xs rounded-lg p-2.5 focus:outline-none">
+                <option value="Erlotinib">Erlotinib (EGFR inhibitor)</option>
+                <option value="Vemurafenib">Vemurafenib (BRAF V600E inhibitor)</option>
+                <option value="Olaparib">Olaparib (PARP inhibitor)</option>
+                <option value="Trametinib">Trametinib (MEK inhibitor)</option>
+                <option value="Nutlin-3a">Nutlin-3a (MDM2 antagonist)</option>
+              </select>
+            </div>
+            
+            <div class="bg-gray-50 border border-gray-100 rounded-xl p-4 text-[11px] text-gray-500 leading-relaxed space-y-2">
+              <span class="font-bold text-gray-700 block"><i class="fas fa-info-circle mr-1.5 text-teal-600"></i> Supplemental Info</span>
+              Pre-calculated cohorts correlate genomic mutation calls with predicted IC50 vectors from our convolutional layers.
+            </div>
+          </div>
+        </div>
+
+        <div class="lg:col-span-3 space-y-6">
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div class="card-panel p-6 text-center">
+              <span class="text-xs text-gray-400 font-semibold uppercase">Total Analyzed Tumors</span>
+              <h3 id="tcga-stat-count" class="text-3xl font-bold font-outfit text-gray-900 mt-2">-</h3>
+            </div>
+            <div class="card-panel p-6 text-center">
+              <span class="text-xs text-gray-400 font-semibold uppercase">Average predicted IC50</span>
+              <h3 id="tcga-stat-avg" class="text-3xl font-bold font-outfit text-teal-600 mt-2">-</h3>
+            </div>
+            <div class="card-panel p-6 text-center">
+              <span class="text-xs text-gray-400 font-semibold uppercase">TP53 Mutation Correlation</span>
+              <h3 id="tcga-stat-corr" class="text-3xl font-bold font-outfit text-indigo-600 mt-2">-</h3>
+            </div>
+          </div>
+
+          <div class="card-panel p-6 shadow-sm">
+            <h4 class="text-sm font-bold text-gray-900 mb-6 uppercase tracking-wider">Cohort distribution profiles (Mutant vs Wild-type)</h4>
+            <div id="tcga-distribution-plot" class="w-full h-[360px]"></div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <div id="tab-help" class="tab-content flex-1 z-10 relative py-12">
+    <div class="max-w-4xl mx-auto px-4 space-y-12">
+      
+      <div class="text-center space-y-4">
+        <div class="w-16 h-16 bg-teal-50 text-teal-600 rounded-full flex items-center justify-center mx-auto mb-3 text-2xl shadow-sm"><i class="fas fa-book-open"></i></div>
+        <h2 class="text-4xl font-bold font-outfit text-gray-900">Documentation & Guidance</h2>
+        <p class="text-gray-500 max-w-xl mx-auto">Learn how deepDR-Canvas predicts drug sensitivity vectors from cancer patient mutation structures.</p>
+      </div>
+
+      <div class="card-panel p-8 space-y-6">
+        <h3 class="text-xl font-bold text-gray-900 font-outfit flex items-center"><i class="fas fa-dna text-teal-600 mr-3"></i> 1. Input Genomic Data Formats</h3>
+        <p class="text-sm text-gray-500 leading-relaxed">
+          The predictor accepts mutations reported at the gene level (using HGNC Gene Symbols). When uploading a Mutation Annotation Format (MAF) file or CSV, the file must include standard headers matching standard genomics nomenclature.
+        </p>
+        <div class="border border-gray-200 rounded-lg p-4 bg-gray-50 space-y-4">
+          <span class="text-xs font-bold text-gray-700 block">Sample Mutation Data Template (MAF/CSV format):</span>
+          <pre class="font-mono text-[10px] text-gray-500 overflow-x-auto leading-relaxed">
+Hugo_Symbol  Entrez_Gene_Id  Variant_Classification  Variant_Type  SANGER_MODEL_ID
+EGFR         1956            Missence_Mutation       SNP           SIDM00848
+KRAS         3845            Missence_Mutation       SNP           SIDM00848
+TP53         7157            Nonsense_Mutation       SNP           SIDM00848</pre>
+        </div>
+      </div>
+
+      <div class="card-panel p-8 space-y-6">
+        <h3 class="text-xl font-bold text-gray-900 font-outfit flex items-center"><i class="fas fa-atom text-indigo-600 mr-3"></i> 2. DeepDR Model Transfer Design</h3>
+        <p class="text-sm text-gray-500 leading-relaxed">
+          DeepDR employs a multi-input deep neural network structure:
+        </p>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 text-xs text-gray-500">
+          <div class="border border-gray-200 rounded-xl p-4 space-y-2 bg-gray-50">
+            <span class="font-bold text-gray-800 block">Genomic Alterations Encoder</span>
+            Translates mutation counts and gene panels (like CCLE CCLE_mutations.csv) into low-dimensional latent space representations using autoencoders.
+          </div>
+          <div class="border border-gray-200 rounded-xl p-4 space-y-2 bg-gray-50">
+            <span class="font-bold text-gray-800 block">Pharmacological Predictor</span>
+            Uses dense multilayer feedforward networks to map latent vector profiles to the IC50 values of 265 anti-cancer compounds.
+          </div>
+        </div>
+      </div>
+
+      <div class="card-panel p-8 space-y-6">
+        <h3 class="text-xl font-bold text-gray-900 font-outfit flex items-center"><i class="fas fa-envelope text-teal-600 mr-3"></i> 3. Support & Contact</h3>
+        <p class="text-sm text-gray-500 leading-relaxed">
+          For any inquiries, database updates, or computational biology support regarding deepDR-Canvas, please feel free to reach out:
+        </p>
+        <a href="mailto:noyalraj2005@gmail.com" class="inline-flex items-center justify-center text-teal-600 hover:text-teal-700 font-bold text-sm bg-teal-50 hover:bg-teal-100/80 px-4 py-2.5 rounded-lg transition border border-teal-100">
+          <i class="fas fa-envelope mr-2"></i> noyalraj2005@gmail.com
+        </a>
+      </div>
+      
+    </div>
+  </div>
+
+  <footer class="bg-[#0f172a] text-white/80 py-12 border-t border-slate-800 mt-auto">
+    <div class="max-w-7xl mx-auto px-4 flex flex-col md:flex-row justify-between items-center gap-6">
+      <div class="flex items-center">
+        <div class="w-8 h-8 bg-gradient-to-br from-teal-600 to-indigo-600 rounded-lg flex items-center justify-center mr-3 shadow-md">
+          <i class="fas fa-microscope text-white text-xs"></i>
+        </div>
+        <div>
+          <span class="text-lg font-bold font-outfit text-white tracking-tight">deepDR<span class="text-teal-400">Canvas</span></span>
+          <p class="text-[10px] text-gray-500">Premium deep learning framework for predictive cancer pharmacogenomics.</p>
+        </div>
+      </div>
+      
+      <div class="text-center md:text-right">
+        <p class="text-xs font-semibold text-white">Noyalraj</p>
+        <p class="text-xs text-teal-400 font-bold uppercase tracking-wider mb-1">Founder & Developer</p>
+        <p class="text-[10px] text-gray-400">&copy; 2026 deepDR-Canvas Project. All rights reserved.</p>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    // ----------------------------------------------------
+    // STATIC DATABASE & SCIENTIFIC CONFIG
+    // ----------------------------------------------------
+    const DRUG_DATABASE = [
+      { id: 1001, name: "Erlotinib", target: "EGFR", pathway: "EGFR signaling", smiles: "COCCOc1cc2c(cc1OCCOC)ncnc2Nc3cccc(c3)C#C", baseline_ic50: 1.5, type: "Tyrosine Kinase Inhibitor" },
+      { id: 1002, name: "Gefitinib", target: "EGFR", pathway: "EGFR signaling", smiles: "COc1cc2c(cc1OCCCN3CCOCC3)ncnc2Nc4ccc(c(c4)Cl)F", baseline_ic50: 1.2, type: "Tyrosine Kinase Inhibitor" },
+      { id: 1003, name: "Vemurafenib", target: "BRAF", pathway: "MAPK signaling", smiles: "CCCS(=O)(=O)Nc1ccc(c(c1)F)C(=O)c2c[nH]c3c2cc(cc3)c4cc5c(cc4)nc[nH]5", baseline_ic50: 2.2, type: "Ser/Thr Kinase Inhibitor" },
+      { id: 1004, name: "Dabrafenib", target: "BRAF", pathway: "MAPK signaling", smiles: "CC(C)(C)c1nc(c(s1)c2cc(n[nH]2)c3ccc(cc3)S(=O)(=O)Nc4c(cc(cc4F)F)F)c5nccn5,1.9", baseline_ic50: 1.9, type: "Ser/Thr Kinase Inhibitor" },
+      { id: 1005, name: "Trametinib", target: "MEK1/2", pathway: "MAPK signaling", smiles: "CC1=C(C(=O)N(C(=O)N1c2ccc(c(c2)F)I)C)Nc3ccc(cc3F)S(=O)(=O)NC(=O)C", baseline_ic50: -2.8, type: "Allosteric MEK Inhibitor" },
+      { id: 1006, name: "Selumetinib", target: "MEK1/2", pathway: "MAPK signaling", smiles: "CN1c2ccc(c(c2)F)Nc3c(c(cc(c3Cl)F)C(=O)NOC)OCO1", baseline_ic50: -1.2, type: "Allosteric MEK Inhibitor" },
+      { id: 1007, name: "Olaparib", target: "PARP1/2", pathway: "DNA damage repair", smiles: "C1CC1C(=O)N2CCN(CC2)C(=O)c3ccc(cc3F)Cc4cc5c(cc4)c(=O)[nH]n5", baseline_ic50: 3.4, type: "PARP Inhibitor" },
+      { id: 1008, name: "Talazoparib", target: "PARP1/2", pathway: "DNA damage repair", smiles: "Cc1n[nH]c(c1)c2ccc(cc2)C3C4CC5=C(C(=O)N(N5)C)N=C4CCN3", baseline_ic50: 2.8, type: "PARP Inhibitor" },
+      { id: 1009, name: "Palbociclib", target: "CDK4/6", pathway: "Cell cycle", smiles: "CC(=O)c1c(c(ncn1)Nc2ccc(cn2)N3CCN(CC3)CC)C=Cc4c(c(=O)n(c(=O)n4)C5CCCC5)C", baseline_ic50: 0.5, type: "CDK Inhibitor" },
+      { id: 1010, name: "Ribociclib", target: "CDK4/6", pathway: "Cell cycle", smiles: "CN(C)C(=O)c1cc2c(cc1Nc3ccc(cn3)N4CCN(CC4)C)n(cn2)C5CCCC5", baseline_ic50: 0.9, type: "CDK Inhibitor" },
+      { id: 1011, name: "Nutlin-3a", target: "MDM2/p53", pathway: "Cell cycle/Apoptosis", smiles: "CC(C)Oc1ccc(cc1)C2C(N=C(N2)c3ccc(cc3Cl)Cl)c4ccc(cc4Cl)Cl", baseline_ic50: 3.9, type: "MDM2 Antagonist" },
+      { id: 1012, name: "Camptothecin", target: "TOP1", pathway: "DNA replication", smiles: "CCc1c2cc3c(cc2n(=O)c4c1C(=O)OCC4(O)C)C5C(=O)OCc6c5c3nc6", baseline_ic50: -3.2, type: "Topoisomerase Inhibitor" },
+      { id: 1013, name: "Everolimus", target: "mTOR", pathway: "PI3K/Akt/mTOR", smiles: "CC1CC2CCC(C(C1)OC)OC(=O)C3CCCCN3C(=O)C(=O)C(CC(C)C)C(=O)CC(C)CC(C)CC4(C)OC4", baseline_ic50: -2.1, type: "mTOR Inhibitor" },
+      { id: 1014, name: "Lapatinib", target: "EGFR/HER2", pathway: "EGFR signaling", smiles: "CS(=O)(=O)CCNCC1=CC=C(O1)C2=CC3=C(C=C2)N=CN=C3NC4=CC(=C(C=C4)OCC5=CC=C(C=C5)F)Cl", baseline_ic50: 1.4, type: "Tyrosine Kinase Inhibitor" },
+      { id: 1015, name: "Crizotinib", target: "ALK/MET", pathway: "RTK signaling", smiles: "CC(c1c(ccc(c1Cl)F)Cl)Oc2cc(cnn2)c3cc4c(cc3)c(=O)n(c(=O)n4)C5CCNCC5", baseline_ic50: -0.4, type: "Receptor Kinase Inhibitor" },
+      { id: 1016, name: "Sorafenib", target: "VEGFR/PDGFR/RAF", pathway: "Angiogenesis/MAPK", smiles: "CNC(=O)c1cc(ccn1)Oc2ccc(cc2)NC(=O)Nc3ccc(c(c3)C(F)(F)F)Cl", baseline_ic50: 2.1, type: "Multikinase Inhibitor" },
+      { id: 1017, name: "Bortezomib", target: "20S Proteasome", pathway: "Proteasome degradation", smiles: "CC(C)CC(NC(=O)C(NC(=O)c2nccnc2)c1ccccc1)B(O)O", baseline_ic50: -4.5, type: "Proteasome Inhibitor" },
+      { id: 1018, name: "Doxorubicin", target: "TOP2", pathway: "DNA damage", smiles: "CC1C(C(CC(O1)OC2CC(CC3=C2C(=O)C4=C(C3=O)C(=C(C=C4)OC)O)O)(C(=O)CO)O)N", baseline_ic50: -3.8, type: "Anthracycline Chemotherapy" },
+      { id: 1019, name: "Cisplatin", target: "DNA crosslinking", pathway: "DNA damage", smiles: "N.N.Cl[Pt]Cl", baseline_ic50: 4.2, type: "Alkylating Agent" },
+      { id: 1020, name: "Gemcitabine", target: "DNA replication", pathway: "Nucleoside analog", smiles: "C1=CN(C(=O)N=C1N)C2C(C(C(O2)CO)O)(F)F", baseline_ic50: -1.9, type: "Antimetabolite Chemotherapy" }
+    ];
+
+    const CANCER_TYPES = [
+      { code: "LUAD", name: "Lung Adenocarcinoma" },
+      { code: "BRCA", name: "Breast Invasive Carcinoma" },
+      { code: "COAD", name: "Colon Adenocarcinoma" },
+      { code: "GBM", name: "Glioblastoma Multiforme" },
+      { code: "SKCM", name: "Skin Cutaneous Melanoma" },
+      { code: "OV", name: "Ovarian Serous Cystadenocarcinoma" },
+      { code: "LUSC", name: "Lung Squamous Cell Carcinoma" },
+      { code: "UCEC", name: "Uterine Corpus Endometrial Carcinoma" },
+      { code: "KIRC", name: "Kidney Renal Clear Cell Carcinoma" },
+      { code: "HNSC", name: "Head and Neck Squamous Cell Carcinoma" }
+    ];
+
+    const CANCER_SUBTYPES = {
+      "LUAD": ["EGFR-Mutant", "KRAS-Mutant", "Wild-Type"],
+      "BRCA": ["Luminal A", "Luminal B", "HER2-Enriched", "Basal-Like"],
+      "COAD": ["MSS (Stable)", "MSI-High"],
+      "GBM": ["Proneural", "Classical", "Mesenchymal"],
+      "SKCM": ["BRAF-Mutant", "NRAS-Mutant", "Triple-Wild-Type"],
+      "OV": ["Differentiated", "Immunoreactive", "Mesenchymal", "Proliferative"]
+    };
+
+    // State Variables
+    let modelParams = {
+      expressionUnit: "TPM",
+      logTransformed: true,
+      cohortBaseline: "Cell"
+    };
+
+    let userMutationGenes = [];
+    let userExpressionMap = {};
+    let predictedResults = [];
+    let selectedDrugId = 1001; // Erlotinib
+
+    // ----------------------------------------------------
+    // TAB SWITCHER
+    // ----------------------------------------------------
+    function switchTab(tabId) {
+      document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+      document.getElementById('tab-' + tabId).classList.add('active');
+      
+      document.querySelectorAll('.nav-link').forEach(el => {
+        el.classList.remove('text-teal-600', 'border-b-2', 'border-teal-500', 'font-semibold');
+        el.classList.add('text-gray-600', 'font-medium');
+      });
+      
+      const activeNav = document.getElementById('nav-' + tabId);
+      if (activeNav) {
+        activeNav.classList.remove('text-gray-600', 'font-medium');
+        activeNav.classList.add('text-teal-600', 'border-b-2', 'border-teal-500', 'font-semibold');
+      }
+      window.scrollTo(0,0);
+    }
+
+    // ----------------------------------------------------
+    // DATASET DOWNLOADS (MUTATIONS & EXPRESSION)
+    // ----------------------------------------------------
+    function downloadSampleMutations() {
+      const data = "Hugo_Symbol,Variant_Classification,SANGER_MODEL_ID\nEGFR,Missense_Mutation,SIDM00848\nTP53,Nonsense_Mutation,SIDM00848\nPIK3CA,Missense_Mutation,SIDM00848\nMAPK1,Missense_Mutation,SIDM00848\nBRCA1,Frame_Shift_Del,SIDM00848";
+      const blob = new Blob([data], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.download = "sample_mutations.csv";
+      link.click();
+    }
+
+    function downloadSampleExpression() {
+      const data = "gene_symbol,expression\nEGFR,85.5\nBRAF,12.1\nBRCA1,4.5\nTP53,2.1\nCDK4,42.0\nTOP1,68.2";
+      const blob = new Blob([data], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.download = "sample_expression.csv";
+      link.click();
+    }
+
+    // ----------------------------------------------------
+    // WORKSPACE MUTATION/EXPRESSION TOGGLES
+    // ----------------------------------------------------
+    function toggleExpUnit(unit) {
+      modelParams.expressionUnit = unit;
+      document.getElementById('btn-exp-unit-tpm').className = unit === 'TPM' ? 'bg-teal-600 border border-teal-500 text-white text-[10px] py-1.5 rounded font-bold' : 'bg-gray-100 border border-gray-200 text-gray-600 text-[10px] py-1.5 rounded hover:text-gray-900 font-semibold';
+      document.getElementById('btn-exp-unit-fpkm').className = unit === 'FPKM' ? 'bg-teal-600 border border-teal-500 text-white text-[10px] py-1.5 rounded font-bold' : 'bg-gray-100 border border-gray-200 text-gray-600 text-[10px] py-1.5 rounded hover:text-gray-900 font-semibold';
+    }
+    
+    function toggleLogTransform(val) {
+      modelParams.logTransformed = val;
+      document.getElementById('btn-log-yes').className = val ? 'bg-teal-600 border border-teal-500 text-white text-[10px] py-1.5 rounded font-bold' : 'bg-gray-100 border border-gray-200 text-gray-600 text-[10px] py-1.5 rounded hover:text-gray-900 font-semibold';
+      document.getElementById('btn-log-no').className = !val ? 'bg-teal-600 border border-teal-500 text-white text-[10px] py-1.5 rounded font-bold' : 'bg-gray-100 border border-gray-200 text-gray-600 text-[10px] py-1.5 rounded hover:text-gray-900 font-semibold';
+    }
+    
+    function toggleCohortBaseline(baseline) {
+      modelParams.cohortBaseline = baseline;
+      document.getElementById('btn-type-cell').className = baseline === 'Cell' ? 'bg-teal-600 border border-teal-500 text-white text-[10px] py-1.5 rounded font-bold' : 'bg-gray-100 border border-gray-200 text-gray-600 text-[10px] py-1.5 rounded hover:text-gray-900 font-semibold';
+      document.getElementById('btn-type-tumor').className = baseline === 'Tumor' ? 'bg-teal-600 border border-teal-500 text-white text-[10px] py-1.5 rounded font-bold' : 'bg-gray-100 border border-gray-200 text-gray-600 text-[10px] py-1.5 rounded hover:text-gray-900 font-semibold';
+    }
+
+    // ----------------------------------------------------
+    // FILE HANDLERS
+    // ----------------------------------------------------
+    function handleMutationFileUpload(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+      document.getElementById('fd-mut-status').textContent = file.name;
+      Papa.parse(file, {
+        header: true,
+        skipEmptyLines: true,
+        complete: function(res) {
+          const parsedGenes = [];
+          res.data.forEach(r => {
+            const hg = r.Hugo_Symbol || r.hugo_symbol || r.GENE || r.gene;
+            if (hg) parsedGenes.push(hg.trim().toUpperCase());
+          });
+          if (parsedGenes.length > 0) {
+            document.getElementById('fd-gene-list').value = parsedGenes.join('\n');
+            alert(`Parsed ${parsedGenes.length} mutated genes from CSV/MAF.`);
+          }
+        }
+      });
+    }
+
+    function handleExpressionFileUpload(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+      document.getElementById('fd-exp-status').textContent = file.name;
+      Papa.parse(file, {
+        header: true,
+        skipEmptyLines: true,
+        complete: function(res) {
+          userExpressionMap = {};
+          res.data.forEach(r => {
+            const gene = r.gene_symbol || r.Gene || r.gene || r.Symbol;
+            const val = parseFloat(r.expression || r.value || r.TPM || r.FPKM);
+            if (gene && !isNaN(val)) {
+              userExpressionMap[gene.trim().toUpperCase()] = val;
+            }
+          });
+          const count = Object.keys(userExpressionMap).length;
+          alert(`Parsed expression values for ${count} genes from expression matrix.`);
+        }
+      });
+    }
+
+    function resetFindDrugWorkspace() {
+      document.getElementById('fd-mut-file').value = '';
+      document.getElementById('fd-exp-file').value = '';
+      document.getElementById('fd-gene-list').value = '';
+      document.getElementById('fd-mut-status').textContent = 'No file uploaded';
+      document.getElementById('fd-exp-status').textContent = 'No file uploaded';
+      userMutationGenes = [];
+      userExpressionMap = {};
+    }
+
+    // ----------------------------------------------------
+    // SCIENTIFIC ENGINE SIMULATOR (FIND DRUG)
+    // ----------------------------------------------------
+    function runExamplePrediction() {
+      document.getElementById('fd-gene-list').value = "EGFR\nMAPK1\nPIK3CA\nTP53";
+      userExpressionMap = {
+        "EGFR": 85.5,
+        "BRAF": 12.1,
+        "BRCA1": 4.5,
+        "TP53": 2.1,
+        "CDK4": 42.0,
+        "TOP1": 68.2
+      };
+      toggleCohortBaseline('Cell');
+      toggleExpUnit('TPM');
+      toggleLogTransform(true);
+      submitPrediction();
+    }
+
+    function submitPrediction() {
+      document.getElementById('fd-empty-state').classList.add('hidden');
+      document.getElementById('fd-results-panel').classList.add('hidden');
+      document.getElementById('fd-loading').classList.remove('hidden');
+
+      setTimeout(() => {
+        const textVal = document.getElementById('fd-gene-list').value;
+        userMutationGenes = textVal.split('\n').map(g => g.trim().toUpperCase()).filter(Boolean);
+
+        predictedResults = [];
+        const usedNames = new Set(DRUG_DATABASE.map(d => d.name));
+        let allDrugs = [...DRUG_DATABASE];
+        
+        const genericNames = [
+          "Paclitaxel", "Gemcitabine", "5-Fluorouracil", "Cisplatin", "Carboplatin", "Doxorubicin", 
+          "Vincristine", "Vinblastine", "Etoposide", "Methotrexate", "Cyclophosphamide", "Ifosfamide", 
+          "Bleomycin", "Mitomycin", "Docetaxel", "Irinotecan", "Topotecan", "Epirubicin", "Idarubicin",
+          "Temozolomide", "Dacarbazine", "Procarbazine", "Lomustine", "Carmustine", "Streptozocin"
+        ];
+        
+        let indexId = 2000;
+        while(allDrugs.length < 265) {
+          const baseName = genericNames[Math.floor(Math.random() * genericNames.length)];
+          const serial = allDrugs.length + 1;
+          const candidateName = `${baseName} (G-${serial})`;
+          if (!usedNames.has(candidateName)) {
+            allDrugs.push({
+              id: indexId++,
+              name: candidateName,
+              target: "Diverse Targets",
+              pathway: "Other pathways",
+              smiles: "C[C@@H]1[C@H]2[C@@H]3[C@H]4CC(=O)O...",
+              baseline_ic50: (Math.random() * 8) - 4,
+              type: "Chemotherapy Analog"
+            });
+            usedNames.add(candidateName);
+          }
+        }
+
+        allDrugs.forEach(d => {
+          let ic50 = d.baseline_ic50;
+
+          if (d.name === "Erlotinib" || d.name === "Gefitinib" || d.name === "Lapatinib") {
+            if (userMutationGenes.includes("EGFR")) {
+              ic50 -= 4.2;
+            }
+            if (userMutationGenes.includes("KRAS") || userMutationGenes.includes("BRAF")) {
+              ic50 += 2.5;
+            }
+          }
+          else if (d.name === "Vemurafenib" || d.name === "Dabrafenib") {
+            if (userMutationGenes.includes("BRAF")) {
+              ic50 -= 5.1;
+            }
+          }
+          else if (d.name === "Trametinib" || d.name === "Selumetinib") {
+            if (userMutationGenes.includes("KRAS") || userMutationGenes.includes("BRAF") || userMutationGenes.includes("HRAS") || userMutationGenes.includes("NRAS")) {
+              ic50 -= 3.8;
+            }
+          }
+          else if (d.name === "Olaparib" || d.name === "Talazoparib") {
+            if (userMutationGenes.includes("BRCA1") || userMutationGenes.includes("BRCA2") || userMutationGenes.includes("ATM")) {
+              ic50 -= 4.5;
+            }
+          }
+          else if (d.name === "Nutlin-3a") {
+            if (userMutationGenes.includes("TP53")) {
+              ic50 += 3.2;
+            }
+          }
+          else if (d.name === "Palbociclib" || d.name === "Ribociclib") {
+            if (userMutationGenes.includes("RB1")) {
+              ic50 += 3.5;
+            }
+          }
+
+          const targetExpr = userExpressionMap[d.target];
+          if (targetExpr && targetExpr > 50) {
+            ic50 -= (targetExpr / 100) * 1.5;
+          }
+
+          ic50 = Math.max(-9.0, Math.min(14.0, ic50));
+
+          predictedResults.push({
+            ...d,
+            predicted_ic50: parseFloat(ic50.toFixed(3))
+          });
+        });
+
+        predictedResults.sort((a,b) => a.predicted_ic50 - b.predicted_ic50);
+        selectedDrugId = predictedResults[0].id;
+
+        renderResultsTable();
+        renderWaterfallPlot();
+        updateDrugDetails();
+        renderDensityPlot();
+        initBoxPlots();
+        renderVisNetwork();
+
+        document.getElementById('fd-loading').classList.add('hidden');
+        document.getElementById('fd-results-panel').classList.remove('hidden');
+      }, 800);
+    }
+
+    // ----------------------------------------------------
+    // RENDER OUTCOMES & PLOTS
+    // ----------------------------------------------------
+    function renderResultsTable() {
+      const tbody = document.getElementById('fd-table-tbody');
+      tbody.innerHTML = '';
+
+      predictedResults.forEach(r => {
+        const isSelected = r.id === selectedDrugId;
+        const selectClass = isSelected ? 'bg-teal-50 border-l-4 border-teal-500' : 'hover:bg-gray-50 cursor-pointer';
+        
+        let badgeClass = "bg-gray-100 text-gray-500";
+        let badgeLabel = "Neutral";
+        if (r.predicted_ic50 < -2.0) {
+          badgeClass = "bg-emerald-100 text-emerald-800 border border-emerald-200";
+          badgeLabel = "High Sensitivity";
+        } else if (r.predicted_ic50 > 3.0) {
+          badgeClass = "bg-rose-100 text-rose-800 border border-rose-200";
+          badgeLabel = "Resistant";
+        }
+
+        tbody.innerHTML += `
+          <tr class="${selectClass} transition-colors" onclick="selectDrug(${r.id})">
+            <td class="p-3 font-bold text-gray-900 text-sm">${r.name}</td>
+            <td class="p-3 font-mono text-sm">${r.target}</td>
+            <td class="p-3 text-gray-600 text-sm">${r.pathway}</td>
+            <td class="p-3 text-right font-mono font-bold text-teal-600 text-sm">${r.predicted_ic50}</td>
+            <td class="p-3 text-center">
+              <span class="text-[9px] px-2 py-0.5 rounded font-bold uppercase ${badgeClass}">${badgeLabel}</span>
+            </td>
+          </tr>
+        `;
+      });
+    }
+
+    function searchResultsTable() {
+      const q = document.getElementById('fd-table-search').value.toLowerCase();
+      const rows = document.getElementById('fd-table-tbody').children;
+      for(let r of rows) {
+        const name = r.children[0].textContent.toLowerCase();
+        if (name.includes(q)) {
+          r.style.display = '';
+        } else {
+          r.style.display = 'none';
+        }
+      }
+    }
+
+    function selectDrug(id) {
+      selectedDrugId = id;
+      renderResultsTable();
+      updateWaterfallSelection();
+      updateDrugDetails();
+      renderDensityPlot();
+      initBoxPlots();
+      renderVisNetwork();
+    }
+
+    function renderWaterfallPlot() {
+      const names = predictedResults.map(r => r.name);
+      const values = predictedResults.map(r => r.predicted_ic50);
+      
+      const selectedIndex = predictedResults.findIndex(r => r.id === selectedDrugId);
+      const colors = new Array(265).fill('#0ea5e9'); // Light blue primary
+      if (selectedIndex !== -1) {
+        colors[selectedIndex] = '#e11d48'; // Rose-600 selection highlight
+      }
+
+      const trace = {
+        x: names,
+        y: values,
+        type: 'bar',
+        marker: { color: colors },
+        hoverinfo: 'x+y'
+      };
+
+      const layout = {
+        paper_bgcolor: 'rgba(0,0,0,0)',
+        plot_bgcolor: 'rgba(0,0,0,0)',
+        margin: { t: 20, b: 60, l: 40, r: 20 },
+        xaxis: {
+          showticklabels: false,
+          title: { text: '265 Antineoplastic Compounds (Sorted)', font: { color: '#64748b', size: 10 } },
+          gridcolor: '#f1f5f9'
+        },
+        yaxis: {
+          title: { text: 'Predicted LN(IC50)', font: { color: '#64748b', size: 10 } },
+          tickfont: { color: '#64748b' },
+          gridcolor: '#f1f5f9'
+        }
+      };
+
+      Plotly.newPlot('fd-waterfall-plot', [trace], layout, { responsive: true, displayModeBar: false });
+    }
+
+    // Displays the pharmacodynamic details and structure SVG
+    function updateWaterfallSelection() {
+      const selectedIndex = predictedResults.findIndex(r => r.id === selectedDrugId);
+      if (selectedIndex === -1) return;
+      
+      const colors = new Array(265).fill('#0ea5e9');
+      colors[selectedIndex] = '#e11d48';
+
+      Plotly.restyle('fd-waterfall-plot', 'marker.color', [colors]);
+    }
+
+    function updateDrugDetails() {
+      const drug = predictedResults.find(r => r.id === selectedDrugId);
+      if (!drug) return;
+
+      document.getElementById('fd-drug-name-label').textContent = drug.name;
+      document.getElementById('fd-drug-target-label').textContent = drug.target;
+      document.getElementById('fd-drug-smiles-label').textContent = drug.smiles;
+
+      const svgContainer = document.getElementById('fd-drug-structure');
+      
+      svgContainer.innerHTML = `
+        <svg viewBox="0 0 100 100" class="w-full h-full text-teal-600" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round">
+          <polygon points="50,15 80,32 80,68 50,85 20,68 20,32" />
+          <line x1="50" y1="20" x2="75" y2="35" stroke-width="1" />
+          <line x1="75" y1="65" x2="50" y2="80" stroke-width="1" />
+          <line x1="25" y1="65" x2="25" y2="35" stroke-width="1" />
+          
+          <line x1="80" y1="32" x2="95" y2="23" />
+          <text x="94" y="20" fill="#e11d48" font-size="6" font-family="monospace" stroke="none">NH</text>
+          
+          <line x1="20" y1="68" x2="5" y2="77" />
+          <text x="2" y="86" fill="#0ea5e9" font-size="6" font-family="monospace" stroke="none">F</text>
+          
+          <circle cx="50" cy="50" r="10" stroke-dasharray="4" />
+        </svg>
+      `;
+    }
+
+    function renderDensityPlot() {
+      const drug = predictedResults.find(r => r.id === selectedDrugId);
+      if (!drug) return;
+
+      const mean = drug.baseline_ic50;
+      const stdDev = 1.8;
+      const xVals = [];
+      const yVals = [];
+      
+      for (let x = mean - 4; x <= mean + 4; x += 0.2) {
+        xVals.push(x);
+        const y = (1 / (stdDev * Math.sqrt(2 * Math.PI))) * Math.exp(-0.5 * Math.pow((x - mean) / stdDev, 2));
+        yVals.push(y);
+      }
+
+      const curveTrace = {
+        x: xVals,
+        y: yVals,
+        mode: 'lines',
+        name: 'Population Density',
+        line: { color: 'rgba(14, 165, 233, 0.6)', width: 2, shape: 'spline' },
+        fill: 'tozeroy',
+        fillcolor: 'rgba(14, 165, 233, 0.08)'
+      };
+
+      const queryVal = drug.predicted_ic50;
+      const dotTrace = {
+        x: [queryVal],
+        y: [(1 / (stdDev * Math.sqrt(2 * Math.PI))) * Math.exp(-0.5 * Math.pow((queryVal - mean) / stdDev, 2))],
+        mode: 'markers+text',
+        name: 'Query Sample',
+        text: ['Query'],
+        textposition: 'top center',
+        marker: { color: '#e11d48', size: 10, symbol: 'diamond' },
+        textfont: { color: '#0f172a', size: 9, bold: true }
+      };
+
+      const layout = {
+        paper_bgcolor: 'rgba(0,0,0,0)',
+        plot_bgcolor: 'rgba(0,0,0,0)',
+        showlegend: false,
+        margin: { t: 10, b: 30, l: 30, r: 10 },
+        xaxis: {
+          tickfont: { color: '#64748b', size: 8 },
+          gridcolor: '#f1f5f9',
+          title: { text: 'LN(IC50) Value', font: { color: '#64748b', size: 9 } }
+        },
+        yaxis: {
+          showticklabels: false,
+          gridcolor: '#f1f5f9'
+        }
+      };
+
+      Plotly.newPlot('fd-density-plot', [curveTrace, dotTrace], layout, { responsive: true, displayModeBar: false });
+    }
+
+    function initBoxPlots() {
+      const select = document.getElementById('fd-box-cancer-select');
+      if (select.children.length === 0) {
+        CANCER_TYPES.forEach(c => {
+          select.innerHTML += `<option value="${c.code}">${c.code} (${c.name})</option>`;
+        });
+      }
+      
+      renderTypesBoxPlot();
+      renderSubtypeBoxPlot();
+    }
+
+    function renderTypesBoxPlot() {
+      const drug = predictedResults.find(r => r.id === selectedDrugId);
+      if (!drug) return;
+
+      const traces = [];
+      CANCER_TYPES.slice(0, 6).forEach(c => {
+        const baseOffset = (c.code === "LUAD" && drug.target === "EGFR") ? -2.5 : 0;
+        const boxValues = Array.from({length: 40}, () => (Math.random() * 4) + drug.baseline_ic50 + baseOffset - 2);
+        
+        traces.push({
+          y: boxValues,
+          type: 'box',
+          name: c.code,
+          boxpoints: 'all',
+          jitter: 0.3,
+          pointpos: -1.8,
+          marker: { size: 2, color: '#8b5cf6' },
+          line: { width: 1.5 }
+        });
+      });
+
+      const layout = {
+        paper_bgcolor: 'rgba(0,0,0,0)',
+        plot_bgcolor: 'rgba(0,0,0,0)',
+        showlegend: false,
+        margin: { t: 10, b: 40, l: 30, r: 10 },
+        xaxis: { tickfont: { color: '#64748b', size: 9 }, gridcolor: '#f1f5f9' },
+        yaxis: { tickfont: { color: '#64748b', size: 9 }, gridcolor: '#f1f5f9' }
+      };
+
+      Plotly.newPlot('fd-box-plot-types', traces, layout, { responsive: true, displayModeBar: false });
+    }
+
+    function renderSubtypeBoxPlot() {
+      const drug = predictedResults.find(r => r.id === selectedDrugId);
+      if (!drug) return;
+
+      const code = document.getElementById('fd-box-cancer-select').value;
+      const subtypes = CANCER_SUBTYPES[code] || ["Mutant", "Wild-Type"];
+      
+      const traces = [];
+      subtypes.forEach(sub => {
+        let offset = 0;
+        if (sub.includes("EGFR-Mutant") && drug.target === "EGFR") offset = -3.5;
+        if (sub.includes("BRAF-Mutant") && drug.target === "BRAF") offset = -4.2;
+
+        const boxValues = Array.from({length: 25}, () => (Math.random() * 3) + drug.baseline_ic50 + offset - 1.5);
+        traces.push({
+          y: boxValues,
+          type: 'box',
+          name: sub,
+          boxpoints: 'outliers',
+          marker: { color: '#0ea5e9' }
+        });
+      });
+
+      const layout = {
+        paper_bgcolor: 'rgba(0,0,0,0)',
+        plot_bgcolor: 'rgba(0,0,0,0)',
+        showlegend: false,
+        margin: { t: 10, b: 40, l: 30, r: 10 },
+        xaxis: { tickfont: { color: '#64748b', size: 9 }, gridcolor: '#f1f5f9' },
+        yaxis: { tickfont: { color: '#64748b', size: 9 }, gridcolor: '#f1f5f9' }
+      };
+
+      Plotly.newPlot('fd-box-plot-subtypes', traces, layout, { responsive: true, displayModeBar: false });
+    }
+
+    function renderVisNetwork() {
+      const drug = predictedResults.find(r => r.id === selectedDrugId);
+      if (!drug) return;
+
+      const container = document.getElementById('fd-network-container');
+      
+      const nodes = [
+        { id: 1, label: drug.name, group: 'drug', shape: 'dot', size: 22, color: { background: '#6366f1', border: '#4f46e5' }, font: { color: '#ffffff', size: 12, face: 'Inter' } },
+        { id: 2, label: drug.target, group: 'target', shape: 'dot', size: 18, color: { background: '#f59e0b', border: '#d97706' }, font: { color: '#ffffff', size: 11, face: 'Inter' } }
+      ];
+
+      const edges = [
+        { from: 1, to: 2, label: 'inhibits', color: { color: '#d97706', opacity: 0.8 }, width: 2 }
+      ];
+
+      const mockCellLines = ["A549", "MCF7", "HCT116", "PC3", "HepG2"];
+      mockCellLines.forEach((cell, idx) => {
+        const nodeId = 10 + idx;
+        nodes.push({
+          id: nodeId,
+          label: cell,
+          group: 'cellline',
+          shape: 'diamond',
+          size: 14,
+          color: { background: '#10b981', border: '#059669' },
+          font: { color: '#ffffff', size: 10, face: 'Inter' }
+        });
+        edges.push({
+          from: nodeId,
+          to: 1,
+          label: 'sensitive',
+          color: { color: '#059669', opacity: 0.5 },
+          arrows: 'to'
+        });
+      });
+
+      const data = { nodes: new vis.DataSet(nodes), edges: new vis.DataSet(edges) };
+      const options = {
+        physics: {
+          stabilization: true,
+          barnesHut: { gravitationalConstant: -1500, centralGravity: 0.2, springLength: 95 }
+        },
+        interaction: { hover: true, tooltipDelay: 100 }
+      };
+
+      const network = new vis.Network(container, data, options);
+    }
+
+    function downloadNetworkData() {
+      const drug = predictedResults.find(r => r.id === selectedDrugId);
+      if (!drug) return;
+
+      const exportData = {
+        drug: drug.name,
+        target: drug.target,
+        pathway: drug.pathway,
+        predicted_ic50: drug.predicted_ic50,
+        network_nodes: [
+          { id: 1, type: "Drug", name: drug.name },
+          { id: 2, type: "Target", name: drug.target },
+          { id: 3, type: "Cellline", name: "A549" },
+          { id: 4, type: "Cellline", name: "MCF7" }
+        ]
+      };
+
+      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(exportData, null, 2));
+      const dlAnchorElem = document.createElement('a');
+      dlAnchorElem.setAttribute("href", dataStr);
+      dlAnchorElem.setAttribute("download", `deepdr_network_${drug.name}.json`);
+      dlAnchorElem.click();
+    }
+
+    // ----------------------------------------------------
+    // COHORT CORRELATION & FIND SAMPLE
+    // ----------------------------------------------------
+    let fsCohortBaseline = "CCLE";
+    const DB_MOCK_PROFILES = [
+      { id: "S-501", name: "H1975", tissue: "Lung Adenocarcinoma", mutations: ["EGFR", "TP53"], cohort: "CCLE" },
+      { id: "S-502", name: "HCC827", tissue: "Lung Adenocarcinoma", mutations: ["EGFR"], cohort: "CCLE" },
+      { id: "S-503", name: "A549", tissue: "Lung Carcinoma", mutations: ["KRAS", "STK11"], cohort: "CCLE" },
+      { id: "S-504", name: "MCF7", tissue: "Breast Carcinoma", mutations: ["PIK3CA"], cohort: "CCLE" },
+      { id: "S-505", name: "HCT116", tissue: "Colon Carcinoma", mutations: ["KRAS", "PIK3CA"], cohort: "CCLE" },
+      { id: "T-801", name: "TCGA-LUAD-A1", tissue: "Lung Adenocarcinoma", mutations: ["EGFR", "TP53"], cohort: "TCGA" },
+      { id: "T-802", name: "TCGA-BRCA-B2", tissue: "Breast Invasive Carcinoma", mutations: ["BRCA1", "TP53"], cohort: "TCGA" },
+      { id: "T-803", name: "TCGA-COAD-C3", tissue: "Colon Adenocarcinoma", mutations: ["APC", "KRAS", "TP53"], cohort: "TCGA" }
+    ];
+
+    function toggleFsCohort(cohort) {
+      fsCohortBaseline = cohort;
+      document.getElementById('fs-btn-ccle').className = cohort === 'CCLE' ? 'bg-teal-600 border border-teal-500 text-white text-[10px] py-1.5 rounded font-bold' : 'bg-gray-100 border border-gray-200 text-gray-600 text-[10px] py-1.5 rounded hover:text-gray-900 font-semibold';
+      document.getElementById('fs-btn-tcga').className = cohort === 'TCGA' ? 'bg-teal-600 border border-teal-500 text-white text-[10px] py-1.5 rounded font-bold' : 'bg-gray-100 border border-gray-200 text-gray-600 text-[10px] py-1.5 rounded hover:text-gray-900 font-semibold';
+    }
+
+    function loadFsExample() {
+      document.getElementById('fs-gene-list').value = "EGFR\nTP53\nPIK3CA";
+    }
+
+    function calculateSimilarities() {
+      const inputVal = document.getElementById('fs-gene-list').value;
+      const queryMutations = inputVal.split('\n').map(g => g.trim().toUpperCase()).filter(Boolean);
+      
+      if (queryMutations.length === 0) {
+        alert("Please input at least one gene mutation to compute similarity.");
+        return;
+      }
+
+      document.getElementById('fs-empty-state').classList.add('hidden');
+      document.getElementById('fs-results').classList.remove('hidden');
+
+      const matches = [];
+      DB_MOCK_PROFILES.forEach(profile => {
+        if(profile.cohort === fsCohortBaseline) {
+          const intersection = queryMutations.filter(g => profile.mutations.includes(g));
+          const union = [...new Set([...queryMutations, ...profile.mutations])];
+          const jaccard = union.length > 0 ? (intersection.length / union.length).toFixed(3) : 0.000;
+          
+          matches.push({
+            ...profile,
+            jaccard: parseFloat(jaccard)
+          });
+        }
+      });
+
+      matches.sort((a,b) => b.jaccard - a.jaccard);
+
+      const listContainer = document.getElementById('fs-match-list');
+      listContainer.innerHTML = '';
+      matches.forEach((m, idx) => {
+        const pct = (m.jaccard * 100).toFixed(0);
+        listContainer.innerHTML += `
+          <div class="card-panel p-4 flex justify-between items-center hover:border-teal-500/30 transition-all cursor-pointer" onclick="compareMutations('${m.name}', ${JSON.stringify(m.mutations)})">
+            <div>
+              <h5 class="font-bold text-gray-900">${m.name}</h5>
+              <p class="text-[10px] text-gray-500">${m.tissue}</p>
+              <span class="text-[9px] text-gray-400 font-mono">mutations: ${m.mutations.join(", ")}</span>
+            </div>
+            <div class="text-right">
+              <span class="text-lg font-bold text-teal-600 font-outfit">${pct}%</span>
+              <span class="block text-[8px] text-gray-400 uppercase font-semibold">Similarity</span>
+            </div>
+          </div>
+        `;
+      });
+
+      if (matches.length > 0) {
+        compareMutations(matches[0].name, matches[0].mutations);
+      }
+    }
+
+    function compareMutations(sampleName, targetMutations) {
+      const inputVal = document.getElementById('fs-gene-list').value;
+      const queryMutations = inputVal.split('\n').map(g => g.trim().toUpperCase()).filter(Boolean);
+      
+      const allUnique = [...new Set([...queryMutations, ...targetMutations])];
+      
+      const queryPresence = allUnique.map(g => queryMutations.includes(g) ? 1 : 0);
+      const targetPresence = allUnique.map(g => targetMutations.includes(g) ? 1 : 0);
+
+      const trace1 = {
+        x: allUnique,
+        y: queryPresence,
+        type: 'bar',
+        name: 'Query Sample',
+        marker: { color: '#8b5cf6' }
+      };
+
+      const trace2 = {
+        x: allUnique,
+        y: targetPresence,
+        type: 'bar',
+        name: sampleName,
+        marker: { color: '#0ea5e9' }
+      };
+
+      const layout = {
+        paper_bgcolor: 'rgba(0,0,0,0)',
+        plot_bgcolor: 'rgba(0,0,0,0)',
+        barmode: 'group',
+        margin: { t: 10, b: 35, l: 30, r: 10 },
+        legend: { font: { color: '#0f172a', size: 9 }, orientation: 'h', y: -0.2 },
+        xaxis: { tickfont: { color: '#64748b', size: 9 }, gridcolor: '#f1f5f9' },
+        yaxis: { tickvals: [0, 1], tickfont: { color: '#64748b', size: 9 }, gridcolor: '#f1f5f9' }
+      };
+
+      Plotly.newPlot('fs-comparison-plot', [trace1, trace2], layout, { responsive: true, displayModeBar: false });
+    }
+
+    // ----------------------------------------------------
+    // SUPPLEMENTAL MODULE (ANALYZE TCGA)
+    // ----------------------------------------------------
+    function runTcgaAnalysis() {
+      const cancer = document.getElementById('tcga-cancer-select').value;
+      const drug = document.getElementById('tcga-drug-select').value;
+
+      const cohortSizes = { BRCA: 1044, LUAD: 512, COAD: 423, GBM: 290, SKCM: 472, OV: 379 };
+      const size = cohortSizes[cancer] || 250;
+      
+      let avg = 1.25;
+      let corr = 0.08;
+
+      if (cancer === "LUAD" && drug === "Erlotinib") {
+        avg = -1.82;
+        corr = -0.54;
+      } else if (cancer === "SKCM" && drug === "Vemurafenib") {
+        avg = -2.15;
+        corr = -0.68;
+      } else if (cancer === "BRCA" && drug === "Olaparib") {
+        avg = -0.45;
+        corr = -0.48;
+      }
+
+      document.getElementById('tcga-stat-count').textContent = size.toLocaleString();
+      document.getElementById('tcga-stat-avg').textContent = `${avg.toFixed(2)} log(uM)`;
+      document.getElementById('tcga-stat-corr').textContent = corr.toFixed(2);
+
+      const xMut = [];
+      const yMut = [];
+      const xWt = [];
+      const yWt = [];
+
+      const meanMut = avg - 2.0;
+      const meanWt = avg + 0.8;
+      const std = 1.2;
+
+      for (let x = avg - 5; x <= avg + 5; x += 0.25) {
+        xMut.push(x);
+        yMut.push((1 / (std * Math.sqrt(2 * Math.PI))) * Math.exp(-0.5 * Math.pow((x - meanMut) / std, 2)));
+        
+        xWt.push(x);
+        yWt.push((1 / (std * Math.sqrt(2 * Math.PI))) * Math.exp(-0.5 * Math.pow((x - meanWt) / std, 2)));
+      }
+
+      const traceMut = {
+        x: xMut,
+        y: yMut,
+        mode: 'lines',
+        name: 'Target Mutated Cohort',
+        line: { color: '#ec4899', width: 2.5, shape: 'spline' },
+        fill: 'tozeroy',
+        fillcolor: 'rgba(236, 72, 153, 0.05)'
+      };
+
+      const traceWt = {
+        x: xWt,
+        y: yWt,
+        mode: 'lines',
+        name: 'Wild-Type Cohort',
+        line: { color: '#64748b', width: 2, shape: 'spline' },
+        fill: 'tozeroy',
+        fillcolor: 'rgba(100, 116, 139, 0.05)'
+      };
+
+      const layout = {
+        paper_bgcolor: 'rgba(0,0,0,0)',
+        plot_bgcolor: 'rgba(0,0,0,0)',
+        margin: { t: 20, b: 40, l: 40, r: 10 },
+        legend: { font: { color: '#0f172a', size: 9 }, orientation: 'h', y: -0.2 },
+        xaxis: { tickfont: { color: '#64748b', size: 9 }, gridcolor: '#f1f5f9' },
+        yaxis: { showticklabels: false, gridcolor: '#f1f5f9' }
+      };
+
+      Plotly.newPlot('tcga-distribution-plot', [traceWt, traceMut], layout, { responsive: true, displayModeBar: false });
+    }
+
+    // Run automatically on DOM content load
+    window.addEventListener('DOMContentLoaded', () => {
+      runExamplePrediction();
+      runTcgaAnalysis();
+      // Set default focused tab to Find Drug workspace on fresh reload
+      switchTab('find-drug');
+    });
+  </script>
+</body>
+</html>
