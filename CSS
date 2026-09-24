@@ -1,0 +1,29 @@
+
+html { scroll-behavior: smooth; }
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: #f1f5f9; }
+::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+.tab-content { display: none; }
+.tab-content.active { display: block; }
+
+/* Layout styling matched with HelixGraph */
+.card-panel {
+  background-color: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.75rem;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1);
+}
+.input-field {
+  background-color: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 0.5rem;
+  color: #0f172a;
+  transition: all 0.2s ease;
+}
+.input-field:focus {
+  border-color: #14b8a6;
+  box-shadow: 0 0 0 1px #14b8a6;
+  outline: none;
+}
