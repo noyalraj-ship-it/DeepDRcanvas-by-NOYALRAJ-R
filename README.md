@@ -33,7 +33,7 @@ Author
 Citation
 License
 
-    🧬 Executive Summary
+🧬 Executive Summary
 
 DeepDR-Canvas is an interactive computational platform developed for exploring the relationship between cancer genomic profiles and drug-response patterns.
 
@@ -53,7 +53,7 @@ Cancer-type and subtype-specific response patterns
 
 The platform is designed as a research and educational computational system, rather than a clinical diagnostic or treatment-decision tool.
 
-    🎯 Problem Statement
+🎯 Problem Statement
 
 Cancer treatment response can vary substantially between tumors because of differences in their underlying molecular characteristics.
 
@@ -137,7 +137,7 @@ Provide interactive visual analytics for biomedical research.
                          │ Interactive Analytics │
                          └───────────────────────┘
 
-    🏥 Clinical & Research Capabilities
+ 🏥 Clinical & Research Capabilities
 💊 Drug Response Analysis
 Computational prediction of drug-response profiles
 IC50-based response analysis
@@ -190,7 +190,7 @@ Genomic biomarkers
 Drug–target relationships
 Precision medicine
 
-    🧠 AI & Deep Learning Engine
+🧠 AI & Deep Learning Engine
 
 DeepDR-Canvas incorporates a computational deep-learning workflow for mapping molecular information to drug-response profiles.
 
@@ -234,7 +234,7 @@ Git
 GitHub
 Netlify
 
-    📊 Code & Language Composition
+📊 Code & Language Composition
 
 This is an important part of making the repository look like your screenshot.
 
@@ -247,7 +247,7 @@ CSS
 Python
 .
 
-    📚 Data Resources
+📚 Data Resources
 
 DeepDR-Canvas works with multiple categories of biological and pharmacological information.
 
@@ -261,7 +261,7 @@ DeepDR-Canvas works with multiple categories of biological and pharmacological i
 | Compound Information | Drug characterization       |
 | Cancer Types         | Cross-cancer comparison     |
 
-    📊 Platform Coverage
+ 📊 Platform Coverage
 
 | Resource                 |  Coverage |
 | ------------------------ | --------: |
@@ -290,7 +290,7 @@ DeepDR-Canvas works with multiple categories of biological and pharmacological i
             ↓
 10  Interactive Visualization
 
-    💊 Drug Response Prediction
+💊 Drug Response Prediction
 Find Drug
 
 The Find Drug module enables users to explore computational drug-response profiles using genomic information.
@@ -376,7 +376,7 @@ DeepDR-Canvas converts computational outputs into interactive visual representat
 | Response Network     | Explore drug–sample relationships     |
 | Similarity View      | Examine molecularly related samples   |
 
-    📊 Project Statistics
+📊 Project Statistics
 <div align="center">
 
 | Metric                   |     Value |
@@ -386,7 +386,7 @@ DeepDR-Canvas converts computational outputs into interactive visual representat
 | 🧬 TCGA tumor profiles   | **9,059** |
 </div>
 
-    🧪 Example Analytical Pipeline
+ 🧪 Example Analytical Pipeline
 
 Patient / Tumor Genomic Profile
               │
@@ -414,7 +414,7 @@ Patient / Tumor Genomic Profile
               ▼
     Pharmacogenomic Insight
     
-    🌐 Live Application
+ 🌐 Live Application
 DeepDR-Canvas
 
 Interactive Web Platform
@@ -423,7 +423,7 @@ Interactive Web Platform
 
 The deployed application provides the interactive interface for genomic input, drug-response exploration, sample matching and TCGA analysis.
 
-    🖥️ Application Screenshots
+🖥️ Application Screenshots
 Create this folder:
 assets/
 └── screenshots/
@@ -433,7 +433,7 @@ assets/
     ├── tcga-analysis.png
     └── visualization.png
     
-    🔬 Research Applications
+🔬 Research Applications
 
 DeepDR-Canvas can support computational exploration in:
 
@@ -448,7 +448,7 @@ Biomedical data science
 Artificial intelligence in healthcare
 Computational biology
 
-    ⚠️ Limitations & Responsible Use
+⚠️ Limitations & Responsible Use
 
 DeepDR-Canvas is a research-oriented computational platform.
 
@@ -460,7 +460,7 @@ DeepDR-Canvas should not be used as a standalone clinical decision-making or tre
 
 Independent experimental and clinical validation would be required before applying computational predictions to patient-care decisions.
 
-    🚀 Future Development
+🚀 Future Development
 Planned / Potential Extensions
 🧬 Multi-omics integration
 🧪 Transcriptomics + proteomics integration
@@ -476,7 +476,7 @@ Planned / Potential Extensions
 📦 Containerized deployment
 🔬 Experimental validation workflows
 
-    📁 Repository Structure
+📁 Repository Structure
 
 Use a structure that reflects your actual code, for example:DeepDR-Canvas/
 │
@@ -514,7 +514,7 @@ Use a structure that reflects your actual code, for example:DeepDR-Canvas/
 └── docs/
     └── methodology.md
 
-    👨‍💻 Author
+👨‍💻 Author
 Noyalraj R
 
 B.Tech Biotechnology — Artificial Intelligence Specialization
@@ -531,7 +531,7 @@ Pharmacogenomics
 Healthcare AI
 Precision Medicine
  
-    📚 Citation
+📚 Citation
 
 If this repository is used in academic work, add the appropriate citation information here.
 
@@ -542,6 +542,6 @@ If this repository is used in academic work, add the appropriate citation inform
   note   = {AI-driven cancer pharmacogenomics and drug-response analysis platform}
 }
 
-    📄 License
+📄 License
 
 Specify the license (MIT) that actually applies to the repository.
