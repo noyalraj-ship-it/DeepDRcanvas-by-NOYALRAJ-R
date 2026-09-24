@@ -1,1 +1,57 @@
+import numpy as np
+import joblib
+from pathlib import Path
 
+BASE_DIR = Path(__file__).resolve().parent
+MODEL_PATH = BASE_DIR / "drug_response_model.pkl"
+
+
+class DrugResponseModel:
+    def __init__(self):
+        self.model = None
+        self.scaler = None
+
+    def load(self):
+        if not MODEL_PATH.exists():
+            raise FileNotFoundError(
+                f"Model file not found: {MODEL_PATH}"
+            )
+
+        package = joblib.load(MODEL_PATH)
+
+        if isinstance(package, dict):
+            self.model = package.get("model")
+            self.scaler = package.get("scaler")
+        else:
+            self.model = package
+
+        if self.model is None:
+            raise ValueError("Invalid model package.")
+
+        return self
+
+    def predict(self, features):
+        if self.model is None:
+            self.load()
+
+        values = np.asarray(features, dtype=float).reshape(1, -1)
+
+        if self.scaler is not None:
+            values = self.scaler.transform(values)
+
+        prediction = self.model.predict(values)
+
+        return float(prediction[0])
+
+    def predict_batch(self, features):
+        if self.model is None:
+            self.load()
+
+        values = np.asarray(features, dtype=float)
+
+        if self.scaler is not None:
+            values = self.scaler.transform(values)
+
+        predictions = self.model.predict(values)
+
+        return predictions.tolist()
