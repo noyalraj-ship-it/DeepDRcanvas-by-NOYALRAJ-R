@@ -1,0 +1,21 @@
+id,name,target,pathway,smiles,baseline_ic50,type
+1001,Erlotinib,EGFR,EGFR signaling,COCCOc1cc2c(cc1OCCOC)ncnc2Nc3cccc(c3)C#C,1.5,Tyrosine Kinase Inhibitor
+1002,Gefitinib,EGFR,EGFR signaling,COc1cc2c(cc1OCCCN3CCOCC3)ncnc2Nc4ccc(c(c4)Cl)F,1.2,Tyrosine Kinase Inhibitor
+1003,Vemurafenib,BRAF,MAPK signaling,CCCS(=O)(=O)Nc1ccc(c(c1)F)C(=O)c2c[nH]c3c2cc(cc3)c4cc5c(cc4)nc[nH]5,2.2,Ser/Thr Kinase Inhibitor
+1004,Dabrafenib,BRAF,MAPK signaling,CC(C)(C)c1nc(c(s1)c2cc(n[nH]2)c3ccc(cc3)S(=O)(=O)Nc4c(cc(cc4F)F)F)c5nccn5,1.9,Ser/Thr Kinase Inhibitor
+1005,Trametinib,MEK1/2,MAPK signaling,CC1=C(C(=O)N(C(=O)N1c2ccc(c(c2)F)I)C)Nc3ccc(cc3F)S(=O)(=O)NC(=O)C,-2.8,Allosteric MEK Inhibitor
+1006,Selumetinib,MEK1/2,MAPK signaling,CN1c2ccc(c(c2)F)Nc3c(c(cc(c3Cl)F)C(=O)NOC)OCO1,-1.2,Allosteric MEK Inhibitor
+1007,Olaparib,PARP1/2,DNA damage repair,C1CC1C(=O)N2CCN(CC2)C(=O)c3ccc(cc3F)Cc4cc5c(cc4)c(=O)[nH]n5,3.4,PARP Inhibitor
+1008,Talazoparib,PARP1/2,DNA damage repair,Cc1n[nH]c(c1)c2ccc(cc2)C3C4CC5=C(C(=O)N(N5)C)N=C4CCN3,2.8,PARP Inhibitor
+1009,Palbociclib,CDK4/6,Cell cycle,CC(=O)c1c(c(ncn1)Nc2ccc(cn2)N3CCN(CC3)CC)C=Cc4c(c(=O)n(c(=O)n4)C5CCCC5)C,0.5,CDK Inhibitor
+1010,Ribociclib,CDK4/6,Cell cycle,CN(C)C(=O)c1cc2c(cc1Nc3ccc(cn3)N4CCN(CC4)C)n(cn2)C5CCCC5,0.9,CDK Inhibitor
+1011,Nutlin-3a,MDM2/p53,Cell cycle/Apoptosis,CC(C)Oc1ccc(cc1)C2C(N=C(N2)c3ccc(cc3Cl)Cl)c4ccc(cc4Cl)Cl,3.9,MDM2 Antagonist
+1012,Camptothecin,TOP1,DNA replication,CCc1c2cc3c(cc2n(=O)c4c1C(=O)OCC4(O)C)C5C(=O)OCc6c5c3nc6,-3.2,Topoisomerase Inhibitor
+1013,Everolimus,mTOR,PI3K/Akt/mTOR,CC1CC2CCC(C(C1)OC)OC(=O)C3CCCCN3C(=O)C(=O)C(CC(C)C)C(=O)CC(C)CC(C)CC4(C)OC4,-2.1,mTOR Inhibitor
+1014,Lapatinib,EGFR/HER2,EGFR signaling,CS(=O)(=O)CCNCC1=CC=C(O1)C2=CC3=C(C=C2)N=CN=C3NC4=CC(=C(C=C4)OCC5=CC=C(C=C5)F)Cl,1.4,Tyrosine Kinase Inhibitor
+1015,Crizotinib,ALK/MET,RTK signaling,CC(c1c(ccc(c1Cl)F)Cl)Oc2cc(cnn2)c3cc4c(cc3)c(=O)n(c(=O)n4)C5CCNCC5,-0.4,Receptor Kinase Inhibitor
+1016,Sorafenib,VEGFR/PDGFR/RAF,Angiogenesis/MAPK,CNC(=O)c1cc(ccn1)Oc2ccc(cc2)NC(=O)Nc3ccc(c(c3)C(F)(F)F)Cl,2.1,Multikinase Inhibitor
+1017,Bortezomib,20S Proteasome,Proteasome degradation,CC(C)CC(NC(=O)C(NC(=O)c2nccnc2)c1ccccc1)B(O)O,-4.5,Proteasome Inhibitor
+1018,Doxorubicin,TOP2,DNA damage,CC1C(C(CC(O1)OC2CC(CC3=C2C(=O)C4=C(C3=O)C(=C(C=C4)OC)O)O)(C(=O)CO)O)N,-3.8,Anthracycline Chemotherapy
+1019,Cisplatin,DNA crosslinking,DNA damage,N.N.Cl[Pt]Cl,4.2,Alkylating Agent
+1020,Gemcitabine,DNA replication,Nucleoside analog,C1=CN(C(=O)N=C1N)C2C(C(C(O2)CO)O)(F)F,-1.9,Antimetabolite Chemotherapy
